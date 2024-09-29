@@ -1,122 +1,134 @@
-import streamlit as st
+import pygame
+import sys
 import GameLibrary as GL
-from PIL import Image
+import os
 
-import base64
+# Initialize Pygame
+pygame.init()
 
-@st.cache(allow_output_mutation=True)
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# Set up the display
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("The Enchanted Forest")
 
-def set_png_as_page_bg(png_file):
-    bin_str = get_base64_of_bin_file(png_file)
-    page_bg_img = '''
-    <style>
-    body {
-    background-image: url("data:image/png;base64,%s");
-    background-size: cover;
-    }
-    </style>
-    ''' % bin_str
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
+
+# Fonts
+font = pygame.font.Font(None, 32)
+small_font = pygame.font.Font(None, 24)
+
+# Load background image
+background_image = pygame.image.load(os.path.join('forest.png'))
+background_image = pygame.transform.scale(background_image, (WIDTH, HEIGHT))
+
+# Game state
+game_state = "introduction"
+history = []
+
+# Function to update the game state and add to history
+def update_game_state(new_state):
+    global game_state
+    game_state = new_state
+    history.append(new_state)
+
+# Pygame-based version of the make_choice function
+def make_choice_pygame(option1, option2, result1, result2, next_step1=None, next_step2=None):
+    button1 = pygame.Rect(50, 400, 300, 50)
+    button2 = pygame.Rect(450, 400, 300, 50)
     
-    st.markdown(page_bg_img, unsafe_allow_html=True)
-    return
+    choice_made = False
+    while not choice_made:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = event.pos
+                if button1.collidepoint(mouse_pos):
+                    display_text(result1, 50, 500)
+                    if next_step1:
+                        update_game_state(next_step1.__name__)
+                    choice_made = True
+                elif button2.collidepoint(mouse_pos):
+                    display_text(result2, 50, 500)
+                    if next_step2:
+                        update_game_state(next_step2.__name__)
+                    choice_made = True
+        
+        screen.blit(background_image, (0, 0))
+        display_text("You have two options:", 50, 350)
+        pygame.draw.rect(screen, GRAY, button1)
+        pygame.draw.rect(screen, GRAY, button2)
+        display_text(option1, 60, 410)
+        display_text(option2, 460, 410)
+        pygame.display.flip()
 
-set_png_as_page_bg('./static/random.png')
+# Function to display text
+def display_text(text, x, y):
+    lines = text.split('\n')
+    for i, line in enumerate(lines):
+        text_surface = small_font.render(line, True, BLACK)
+        screen.blit(text_surface, (x, y + i * 30))
 
-#Load image
-#img = Image.open('Images/forest-spirit.webpjpg')
-#st.image(img, caption=None, use_column_width=False)
-# def add_bg_from_local():
-#     st.markdown(
-#         f"""
-#         <style>
-#         .stApp {{
-#             background-image: url("./static/forest-spirit.jpg");
-#             background-size: cover;
-#             border: 1px solid red;
-#         }}
-#         </style>
-#         """,
-#         unsafe_allow_html=True
-#     )
+# Mapping the game state names to actual functions from GameLibrary
+game_map = {
+    "introduction": GL.introduction,
+    "enter_forest": GL.enter_forest,
+    "turn_back": GL.turn_back,
+    "follow_the_path": GL.follow_the_path,
+    "left_path": GL.left_path,
+    "right_path": GL.right_path,
+    "hermit_help": GL.hermit_help,
+    "hermit_refuse": GL.hermit_refuse,
+    "help_creatures": GL.help_creatures,
+    "follow_the_voice": GL.follow_the_voice,
+    "trust_the_figure": GL.trust_the_figure,
+    "distrust_the_figure": GL.distrust_the_figure
+}
 
-# add_bg_from_local()
-
-# # Store the current state of the game in session_state to manage game progress
-# if 'game_state' not in st.session_state:
-#     st.session_state.game_state = "introduction"  # Start at the introduction
-#     st.session_state.history = []  # To track user choices and path
-
-# # Function to update the game state and add to history
-# def update_game_state(new_state):
-#     st.session_state.game_state = new_state
-#     st.session_state.history.append(new_state)
-
-# # Streamlit-based version of the make_choice function
-# def make_choice_streamlit(option1, option2, result1, result2, next_step1=None, next_step2=None):
-#     st.write("You have two options:")
+# Main loop to control the flow of the game based on the state
+def run_game():
+    global game_state
     
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         if st.button(option1):
-#             st.write(result1)
-#             if next_step1:
-#                 update_game_state(next_step1.__name__)
-    
-#     with col2:
-#         if st.button(option2):
-#             st.write(result2)
-#             if next_step2:
-#                 update_game_state(next_step2.__name__)
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    game_state = "introduction"
+                    history.clear()
+        
+        screen.blit(background_image, (0, 0))
+        
+        title = font.render("The Enchanted Forest", True, BLACK)
+        screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 20))
+        
+        welcome = small_font.render("Welcome to 'The Enchanted Forest'!", True, BLACK)
+        screen.blit(welcome, (50, 80))
+        
+        state_text = small_font.render(f"Current game state: {game_state}", True, BLACK)
+        screen.blit(state_text, (50, 120))
+        
+        if game_state in game_map:
+            game_map[game_state]()
+        else:
+            display_text("Game over. Press 'R' to restart.", 50, 160)
+        
+        restart_text = small_font.render("Press 'R' to restart", True, BLACK)
+        screen.blit(restart_text, (WIDTH - restart_text.get_width() - 20, HEIGHT - 40))
+        
+        pygame.display.flip()
 
-# # Mapping the game state names to actual functions from GameLibrary
-# game_map = {
-#     "introduction": GL.introduction,
-#     "enter_forest": GL.enter_forest,
-#     "turn_back": GL.turn_back,
-#     "follow_the_path": GL.follow_the_path,
-#     "left_path": GL.left_path,
-#     "right_path": GL.right_path,
-#     "hermit_help": GL.hermit_help,
-#     "hermit_refuse": GL.hermit_refuse,
-#     "help_creatures": GL.help_creatures,
-#     "follow_the_voice": GL.follow_the_voice,
-#     "trust_the_figure": GL.trust_the_figure,
-#     "distrust_the_figure": GL.distrust_the_figure
-# }
+    pygame.quit()
 
-# # Main loop to control the flow of the game based on the state
-# def run_game():
-#     st.title("The Enchanted Forest")
-#     st.write("Welcome to 'The Enchanted Forest'!")
-    
-#     # Check the current game state and call the corresponding function
-#     current_state = st.session_state.game_state
-#     st.write(f"Current game state: {current_state}")
-    
-#     # Call the function corresponding to the current state from the map
-#     if current_state in game_map:
-#         game_map[current_state]()
-#     else:
-#         st.write("Game over. Restart to play again.")
-    
-#     # Add a back option
-#     #def back_button():
-#     #    if st.session_state.step_history:
-#     #        if st.button("Back"):
-#     #        st.session_state.current_step = st.session_state.step_history.pop()  # To rerun the app and reset the state
+# Override the functions in GameLibrary to use the Pygame make_choice
+GL.make_choice = make_choice_pygame
 
-#     # Add a restart option
-#     if st.button("Restart"):
-#         st.session_state.game_state = "introduction"
-#         st.session_state.history.clear()
-#             #    st.experimental_rerun()  # To rerun the app and reset the state
-
-# # Override the functions in GameLibrary to use the Streamlit make_choice
-# GL.make_choice = make_choice_streamlit
-
-# # Run the game
-# run_game()
+# Run the game
+if __name__ == "__main__":
+    run_game()
