@@ -15,21 +15,23 @@ def update_game_state(new_state):
 # Streamlit-based version of the make_choice function
 def make_choice_streamlit(option1, option2, result1, result2, next_step1=None, next_step2=None):
     st.write("You have two options:")
-    
+    placeholder = st.empty()
     col1, col2 = st.columns(2)
     with col1:
+        st.write(result1)
         if st.button(option1):
-            st.write(result1)
-        #    if next_step1:
-            update_game_state(next_step1.__name__)
-            st.write("Hello")
+            placeholder.write(result1)
+            if next_step1:
+                update_game_state(next_step1.__name__)
+                st.rerun()
     
     with col2:
+        st.write(result2)
         if st.button(option2):
-            st.write(result2)
-        #    if next_step2:
-            update_game_state(next_step2.__name__)
-            st.write("Why")
+            placeholder.write(result2)
+            if next_step2:
+                update_game_state(next_step2.__name__)
+                st.rerun()
 
 # Mapping the game state names to actual functions from GameLibrary
 game_map = {
@@ -72,7 +74,7 @@ def run_game():
     if st.button("Restart"):
         st.session_state.game_state = "introduction"
         st.session_state.history.clear()
-            #    st.experimental_rerun()  # To rerun the app and reset the state
+        st.rerun()  # To rerun the app and reset the state
 
 # Override the functions in GameLibrary to use the Streamlit make_choice
 GL.make_choice = make_choice_streamlit
